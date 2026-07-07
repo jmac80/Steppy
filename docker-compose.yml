@@ -1,5 +1,6 @@
 services:
   backend:
+    image: ghcr.io/jmac80/steppy-backend:latest
     build: ./backend
     restart: unless-stopped
     volumes:
@@ -9,6 +10,7 @@ services:
       - MAX_UPLOAD_MB=500
 
   frontend:
+    image: ghcr.io/jmac80/steppy-frontend:latest
     build: ./frontend
     restart: unless-stopped
     ports:
