@@ -53,7 +53,10 @@ body {
   align-items: center;
   gap: 8px;
   letter-spacing: -0.01em;
+  text-decoration: none;
+  color: var(--text);
 }
+.brand:hover .brand-ver { color: var(--accent); }
 
 .brand-mark { color: var(--accent); }
 
