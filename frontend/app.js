@@ -382,6 +382,7 @@ function renderJob(card, job) {
       continue;
     }
     let detail = r.is_closed_solid ? "closed solid" : "open shell";
+    if (r.body_count > 1) detail = `${r.body_count} bodies, ` + detail;
     if (r.faces_after_merge != null && r.triangle_count != null && r.faces_after_merge < r.triangle_count) {
       detail = `${r.faces_after_merge} faces (merged from ${r.triangle_count} triangles), ` + detail;
     }

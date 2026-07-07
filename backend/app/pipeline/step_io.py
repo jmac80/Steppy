@@ -17,7 +17,8 @@ from OCP.BRepBuilderAPI import (
     BRepBuilderAPI_Sewing,
     BRepBuilderAPI_MakeSolid,
 )
-from OCP.TopoDS import TopoDS, TopoDS_Shape
+from OCP.TopoDS import TopoDS, TopoDS_Shape, TopoDS_Compound
+from OCP.BRep import BRep_Builder
 from OCP.TopExp import TopExp_Explorer
 from OCP.TopAbs import TopAbs_SHELL, TopAbs_FACE
 from OCP.STEPControl import STEPControl_Writer, STEPControl_StepModelType
@@ -45,11 +46,13 @@ def triangle_face(v0, v1, v2) -> TopoDS_Shape | None:
     return face_maker.Face()
 
 
-def sew_faces(faces: list[TopoDS_Shape], tolerance: float = 0.05) -> tuple[TopoDS_Shape, bool]:
+def sew_faces(faces: list[TopoDS_Shape], tolerance: float = 0.05) -> tuple[TopoDS_Shape, bool, int]:
     """
-    Sew faces into a shell and try to close it into a solid. Returns
-    (shape, is_closed_solid); if the shell can't be closed the caller still
-    gets a valid open shell that STEP can represent, flagged honestly.
+    Sew faces into shells and close each into a solid where possible. An STL
+    can contain SEVERAL disconnected parts -- every one becomes its own body
+    in the output (v1 grabbed only the first shell and silently dropped the
+    rest). Returns (shape, all_bodies_closed, body_count); a body that can't
+    be closed is kept as an open shell rather than dropped.
     """
     sewing = BRepBuilderAPI_Sewing(tolerance)
     for f in faces:
@@ -58,14 +61,30 @@ def sew_faces(faces: list[TopoDS_Shape], tolerance: float = 0.05) -> tuple[TopoD
     sewing.Perform()
     sewed = sewing.SewedShape()
 
+    bodies = []
+    all_closed = True
     explorer = TopExp_Explorer(sewed, TopAbs_SHELL)
-    if explorer.More():
+    while explorer.More():
         shell = TopoDS.Shell_s(explorer.Current())
         solid_maker = BRepBuilderAPI_MakeSolid(shell)
         if solid_maker.IsDone():
-            return solid_maker.Solid(), True
+            bodies.append(solid_maker.Solid())
+        else:
+            bodies.append(shell)
+            all_closed = False
+        explorer.Next()
 
-    return sewed, False
+    if not bodies:
+        return sewed, False, 0
+    if len(bodies) == 1:
+        return bodies[0], all_closed, 1
+
+    builder = BRep_Builder()
+    compound = TopoDS_Compound()
+    builder.MakeCompound(compound)
+    for b in bodies:
+        builder.Add(compound, b)
+    return compound, all_closed, len(bodies)
 
 
 def count_faces(shape: TopoDS_Shape) -> int:

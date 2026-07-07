@@ -26,7 +26,7 @@ def faces_to_triangle_shapes(mesh: trimesh.Trimesh, face_indices: np.ndarray | N
 def wrap_to_step(mesh: trimesh.Trimesh, out_path: str, unit: str = "MM",
                  preview_path: str | None = None) -> dict:
     shapes = faces_to_triangle_shapes(mesh)
-    shape, is_solid = step_io.sew_faces(shapes, tolerance=1e-3)
+    shape, is_solid, body_count = step_io.sew_faces(shapes, tolerance=1e-3)
 
     # FreeCAD-style upgrade: fuse coplanar triangles into single big faces,
     # so flat areas become one clean editable face each instead of triangle
@@ -59,5 +59,6 @@ def wrap_to_step(mesh: trimesh.Trimesh, out_path: str, unit: str = "MM",
         "triangle_count": faces_before,
         "faces_after_merge": faces_after,
         "is_closed_solid": is_solid,
+        "body_count": body_count,
         "preview": has_preview,
     }
