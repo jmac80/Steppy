@@ -6,7 +6,16 @@ tested" for what was and wasn't run before first real deployment).
 
 from __future__ import annotations
 
+import os
+
 import trimesh
+
+# Above this, the triangle-by-triangle BREP build gets painfully slow and
+# memory-hungry; better to refuse with a clear message than to grind the
+# server for hours. Organic scans routinely hit 1-5M triangles, so the
+# default is generous -- expect big ones to take a long while. Override
+# with the MAX_FACES environment variable.
+MAX_FACES = int(os.environ.get("MAX_FACES", "2000000"))
 
 
 class RepairReport:
@@ -31,14 +40,13 @@ class RepairReport:
         }
 
 
-def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tuple[trimesh.Trimesh, RepairReport]:
+def load_and_repair(path: str) -> tuple[trimesh.Trimesh, RepairReport]:
     """
     Load an STL (binary or ASCII) and run standard repair steps:
       - merge duplicate vertices
       - fix inconsistent winding / normals
       - fill small holes
       - drop degenerate / zero-area triangles
-      - optional decimation for very dense scan meshes
 
     Returns the repaired mesh plus a report describing what was done, which
     the API surfaces to the user (this is the "auto mesh repair" QoL feature).
@@ -47,7 +55,7 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
     mesh = trimesh.load(path, force="mesh")
 
     if not isinstance(mesh, trimesh.Trimesh):
-        raise ValueError("Uploaded file did not resolve to a single triangle mesh")
+        raise ValueError("Uploaded file did not resolve to a triangle mesh -- is it a valid STL?")
 
     report.original_face_count = len(mesh.faces)
     report.was_watertight_before = bool(mesh.is_watertight)
@@ -59,6 +67,14 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
     mesh.remove_unreferenced_vertices()
     report.removed_degenerate_faces = before_faces - len(mesh.faces)
 
+    if len(mesh.faces) == 0:
+        raise ValueError("No usable triangles found in this file -- is it a valid STL?")
+    if len(mesh.faces) > MAX_FACES:
+        raise ValueError(
+            f"This mesh has {len(mesh.faces):,} triangles; Steppy's limit is {MAX_FACES:,}. "
+            "Simplify/decimate it in your slicer or mesh tool first."
+        )
+
     mesh.fix_normals()
 
     try:
@@ -67,15 +83,6 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
         report.filled_holes = len(mesh.faces) - holes_before
     except Exception as exc:  # pragma: no cover - defensive, trimesh repair can be finicky
         report.notes.append(f"fill_holes skipped: {exc}")
-
-    if decimate_target_faces and len(mesh.faces) > decimate_target_faces:
-        try:
-            mesh = mesh.simplify_quadric_decimation(face_count=decimate_target_faces)
-            report.notes.append(
-                f"decimated dense mesh down to ~{decimate_target_faces} faces"
-            )
-        except Exception as exc:  # pragma: no cover
-            report.notes.append(f"decimation skipped: {exc}")
 
     report.final_face_count = len(mesh.faces)
     report.was_watertight_after = bool(mesh.is_watertight)

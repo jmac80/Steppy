@@ -102,6 +102,34 @@ def list_jobs(limit: int = 50) -> list[dict]:
         return [dict(r) for r in rows]
 
 
+def fail_interrupted() -> None:
+    """Called on startup: any job still marked queued/running was killed by a
+    restart mid-conversion. Mark it failed so it doesn't sit immortal and
+    undeletable in the list, being polled forever."""
+    with _connect() as con:
+        con.execute(
+            "UPDATE jobs SET status='failed', error='interrupted by a server restart', "
+            "updated_at=? WHERE status IN ('queued', 'running')",
+            (time.time(),),
+        )
+
+
+def delete_expired(retention_hours: float) -> int:
+    """Delete finished jobs older than the retention window -- files AND
+    database rows together, so no ghost entries with dead download links."""
+    cutoff = time.time() - retention_hours * 3600
+    with _connect() as con:
+        rows = con.execute(
+            "SELECT id FROM jobs WHERE created_at < ? AND status IN ('done', 'failed')",
+            (cutoff,),
+        ).fetchall()
+    ids = [r[0] for r in rows]
+    for job_id in ids:
+        storage.delete_job_files(job_id)
+    delete_jobs(ids)
+    return len(ids)
+
+
 def list_job_ids_by_status(statuses: tuple[str, ...]) -> list[str]:
     """Used by clear-all: only ever targets finished jobs (done/failed), never
     a job that's still queued or running, so an in-flight conversion can't

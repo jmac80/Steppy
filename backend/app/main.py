@@ -34,10 +34,12 @@ def output_display_name(filename: str, mode: str, seq: int) -> str:
 def _startup():
     storage.ensure_dirs()
     jobs.init(os.path.join(storage.DATA_DIR, "jobs.db"))
+    jobs.fail_interrupted()  # jobs orphaned by a restart become deletable
 
     def _cleanup_loop():
         while True:
-            storage.cleanup_expired()
+            jobs.delete_expired(storage.RETENTION_HOURS)  # rows + files together
+            storage.cleanup_expired()  # sweep any orphaned dirs too
             time.sleep(3600)
 
     threading.Thread(target=_cleanup_loop, daemon=True).start()

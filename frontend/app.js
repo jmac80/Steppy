@@ -106,6 +106,7 @@ function createSTLViewer(container, arrayBuffer, opts = {}) {
     diag,
     dispose() {
       alive = false;
+      controls.dispose();
       renderer.dispose();
       geometry.dispose();
       material.dispose();
@@ -352,7 +353,7 @@ async function pollJob(jobId) {
   }
 }
 
-function renderJob(card, job) {
+function renderJob(card, job, autoPreview = true) {
   const statusEl = card.querySelector(".job-status");
   statusEl.textContent = job.status;
   statusEl.className = `job-status status-${job.status}`;
@@ -400,13 +401,38 @@ function renderJob(card, job) {
   }
   body.innerHTML = html;
 
-  // auto-open the output preview for each finished mode, so you immediately
-  // see what the converted STEP looks like without an extra click
-  for (const mode of job.modes) {
-    const r = report.modes[mode] || {};
-    if (r.preview) openJobPreview(job.id, mode);
+  // auto-open the output preview for freshly finished jobs, so you
+  // immediately see the converted STEP without an extra click. History
+  // jobs loaded on page refresh stay collapsed (opening a dozen 3D
+  // viewers at once would hit the browser's WebGL limits).
+  if (autoPreview) {
+    for (const mode of job.modes) {
+      const r = report.modes[mode] || {};
+      if (r.preview) openJobPreview(job.id, mode);
+    }
   }
 }
+
+// on page load, restore the job history the backend still remembers
+// (files are kept for 24h -- the list should survive a browser refresh)
+(async function loadHistory() {
+  try {
+    const res = await fetch(`${API_BASE}/jobs`);
+    if (!res.ok) return;
+    const history = await res.json();
+    // list arrives newest-first; addJobCard prepends, so iterate oldest-first
+    for (const job of [...history].reverse()) {
+      if (document.getElementById(`job-${job.id}`)) continue;
+      const name = (job.output_names && job.output_names[job.modes[0]]) || job.filename;
+      addJobCard(job.id, name, job.modes);
+      const card = document.getElementById(`job-${job.id}`);
+      renderJob(card, job, false);
+      if (job.status === "queued" || job.status === "running") pollJob(job.id);
+    }
+  } catch (err) {
+    console.warn("steppy: couldn't load job history", err);
+  }
+})();
 
 function escapeHtml(str) {
   const div = document.createElement("div");
