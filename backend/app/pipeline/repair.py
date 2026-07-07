@@ -7,7 +7,6 @@ tested" for what was and wasn't run before first real deployment).
 from __future__ import annotations
 
 import trimesh
-import numpy as np
 
 
 class RepairReport:
@@ -39,7 +38,7 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
       - fix inconsistent winding / normals
       - fill small holes
       - drop degenerate / zero-area triangles
-      - optional decimation for very dense scan meshes before fitting
+      - optional decimation for very dense scan meshes
 
     Returns the repaired mesh plus a report describing what was done, which
     the API surfaces to the user (this is the "auto mesh repair" QoL feature).
@@ -73,7 +72,7 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
         try:
             mesh = mesh.simplify_quadric_decimation(face_count=decimate_target_faces)
             report.notes.append(
-                f"decimated from dense scan mesh down to ~{decimate_target_faces} faces before fitting"
+                f"decimated dense mesh down to ~{decimate_target_faces} faces"
             )
         except Exception as exc:  # pragma: no cover
             report.notes.append(f"decimation skipped: {exc}")
@@ -87,8 +86,3 @@ def load_and_repair(path: str, decimate_target_faces: int | None = None) -> tupl
         )
 
     return mesh, report
-
-
-def face_geometry(mesh: trimesh.Trimesh) -> tuple[np.ndarray, np.ndarray]:
-    """Return (face_centroids, face_normals) for use by the segmentation stage."""
-    return mesh.triangles_center, mesh.face_normals

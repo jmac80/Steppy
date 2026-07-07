@@ -121,7 +121,6 @@ const previewEl = document.getElementById("preview");
 const convertBtn = document.getElementById("convertBtn");
 
 let selectedFile = null;
-let modelBoundingDiag = null;
 let inputViewer = null;
 
 function updateConvertButtonState() {
@@ -166,7 +165,6 @@ function handleFile(file) {
     requestAnimationFrame(() => {
       if (inputViewer) inputViewer.dispose();
       inputViewer = createSTLViewer(previewEl, event.target.result);
-      if (inputViewer) modelBoundingDiag = inputViewer.diag;
     });
   };
   reader.readAsArrayBuffer(file);

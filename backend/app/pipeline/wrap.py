@@ -1,10 +1,6 @@
-"""Faceted "wrap" mode: repackage the mesh's own triangles as a STEP BREP.
-
-This is the always-works, zero-cleanup fallback -- equivalent to what
-imagetostl.com / Stepifi / reaConverter appear to do. Useful on its own for
-maximum-compatibility exports, and used internally by the hybrid pipeline to
-cover whatever the prismatic stage couldn't confidently fit.
-"""
+"""Steppy's conversion: wrap the repaired mesh's triangles as a STEP BREP,
+then fuse coplanar triangles into single clean faces (the FreeCAD-style
+upgrade that makes the output actually pleasant to edit in CAD)."""
 
 from __future__ import annotations
 

@@ -1,19 +1,32 @@
 # Steppy
 
-A simple self‑hosted STL → STEP converter.
+A simple self-hosted STL → STEP converter. Drop an STL in, get back a clean
+STEP solid with flat areas merged into single editable faces.
 
-## How to run it (Dockge or Docker etc)
+## How to run it
 
-1. Pull this repo:
-   https://github.com/jmac80/Steppy.git
+You need Docker with the Compose plugin (any Linux distro, or Docker Desktop
+on Mac/Windows).
 
-2. Run Docker Compose inside the pulled folder:
+    git clone https://github.com/jmac80/Steppy.git
+    cd Steppy
+    docker compose up -d --build
 
-   docker compose up -d --build
+Then open **http://localhost:8642** in your browser (or `http://<server-ip>:8642`
+from another machine on the network).
 
-3. Open it in your browser:
-
-   `http://your-server-ip:8642`
+To use a different port, edit the `ports:` line in `docker-compose.yml`.
 
 That's it.
 
+## What it does
+
+- Repairs the mesh (fills holes, fixes normals, removes degenerate triangles)
+- Wraps it as a STEP BREP solid
+- Fuses coplanar triangles into single flat faces, so the STEP is actually
+  pleasant to edit in CAD instead of triangle soup
+- Shows a 3D preview of both the input STL and the converted output
+- Keeps outputs numbered (`part-01.step`, `part-02.step`, ...) so nothing
+  overwrites; files auto-delete after 24 hours
+
+Everything runs locally on your own machine — files never leave your network.
