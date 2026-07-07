@@ -1,6 +1,9 @@
 # Steppy
 A simple self-hosted STL → STEP converter. Drop an STL in, get back a clean
 STEP solid with flat areas merged into single editable faces.
+
+![Steppy](screenshot.png)
+
 ## How to run it
 You need Docker with the Compose plugin (any Linux distro, or Docker Desktop
 on Mac/Windows).
