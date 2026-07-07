@@ -65,6 +65,14 @@ body {
   color: transparent;
 }
 
+.brand-ver {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  align-self: flex-end;
+  padding-bottom: 2px;
+}
+
 .icon-btn {
   border: 1px solid var(--border);
   background: var(--surface);
