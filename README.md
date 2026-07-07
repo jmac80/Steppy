@@ -20,7 +20,7 @@ from another machine on the network.
 
 To use a different port, edit the `ports:` line in `docker-compose.yml`.
 
-That's it. (Prefer building from source? Use `docker compose up -d --build` instead of the pull.)
+If you prefer building from source then use `docker compose up -d --build` instead of the pull.
 
 ## What Steppy does
 
