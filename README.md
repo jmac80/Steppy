@@ -19,14 +19,13 @@ To use a different port, edit the `ports:` line in `docker-compose.yml`.
 
 That's it.
 
-## What it does
+## What Steppy does:
 
 - Repairs the mesh (fills holes, fixes normals, removes degenerate triangles)
 - Wraps it as a STEP BREP solid
 - Fuses coplanar triangles into single flat faces, so the STEP is actually
-  pleasant to edit in CAD instead of triangle soup
+  pleasant to edit in CAD instead of triangle city
 - Shows a 3D preview of both the input STL and the converted output
 - Keeps outputs numbered (`part-01.step`, `part-02.step`, ...) so nothing
-  overwrites; files auto-delete after 24 hours
-
+  overwrites
 Everything runs locally on your own machine — files never leave your network.
