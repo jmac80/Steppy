@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Steppy — STL to STEP</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">◆</span>
+        <span class="brand-name">Steppy</span>
+      </div>
+      <button id="themeToggle" class="icon-btn" title="Toggle light / dark">
+        <span id="themeIcon">🌙</span>
+      </button>
+    </header>
+
+    <main class="layout">
+      <section class="panel upload-panel">
+        <div id="dropzone" class="dropzone">
+          <input type="file" id="fileInput" accept=".stl" hidden />
+          <div class="dropzone-inner">
+            <div class="dropzone-icon">⬆</div>
+            <p class="dropzone-title">Drop an STL file here</p>
+            <p class="dropzone-sub">or click to browse — up to 500MB</p>
+          </div>
+        </div>
+
+        <div id="preview" class="preview hidden"></div>
+
+        <div class="options">
+          <button id="convertBtn" class="primary-btn convert-top" disabled>Convert</button>
+          <p class="convert-hint">Outputs a clean STEP solid — flat areas merged into single faces.</p>
+        </div>
+      </section>
+
+      <section class="panel results-panel">
+        <div class="results-header">
+          <h3>Jobs</h3>
+          <button id="clearJobsBtn" class="ghost-btn">Clear all</button>
+        </div>
+        <div id="jobList" class="job-list">
+          <p class="empty-state">Converted files will show up here.</p>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/three@0.128.0/build/three.min.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/loaders/STLLoader.js"></script>
+  <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

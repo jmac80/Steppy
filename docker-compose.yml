@@ -1,0 +1,20 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    volumes:
+      - stl2step_data:/data
+    environment:
+      - RETENTION_HOURS=24
+      - MAX_UPLOAD_MB=500
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    ports:
+      - "8642:80"
+    depends_on:
+      - backend
+
+volumes:
+  stl2step_data:
