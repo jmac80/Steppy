@@ -1,3 +1,4 @@
+# Steppy
 FROM python:3.11-slim
 
 # cadquery-ocp ships manylinux wheels for x86_64 and arm64, so this image
