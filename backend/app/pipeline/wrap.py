@@ -1,6 +1,3 @@
-"""Steppy's conversion: wrap the repaired mesh's triangles as a STEP BREP,
-then fuse coplanar triangles into single clean faces (the FreeCAD-style
-upgrade that makes the output actually pleasant to edit in CAD)."""
 
 from __future__ import annotations
 
@@ -11,7 +8,6 @@ from . import step_io
 
 
 def faces_to_triangle_shapes(mesh: trimesh.Trimesh, face_indices: np.ndarray | None = None):
-    """Build one flat triangular BRep face per selected mesh triangle."""
     faces = mesh.faces if face_indices is None else mesh.faces[face_indices]
     verts = mesh.vertices
     shapes = []
@@ -28,10 +24,6 @@ def wrap_to_step(mesh: trimesh.Trimesh, out_path: str, unit: str = "MM",
     shapes = faces_to_triangle_shapes(mesh)
     shape, is_solid, body_count = step_io.sew_faces(shapes, tolerance=1e-3)
 
-    # FreeCAD-style upgrade: fuse coplanar triangles into single big faces,
-    # so flat areas become one clean editable face each instead of triangle
-    # soup. Curved areas keep their facets (they aren't coplanar). If the
-    # merge ever fails, ship the unmerged shell -- faceted must always work.
     faces_before = len(shapes)
     faces_after = faces_before
     try:
@@ -52,7 +44,7 @@ def wrap_to_step(mesh: trimesh.Trimesh, out_path: str, unit: str = "MM",
             step_io.write_preview_stl(shape, preview_path)
             has_preview = True
         except Exception:
-            pass  # preview is a nice-to-have; never fail the conversion over it
+            pass
 
     return {
         "mode": "faceted",

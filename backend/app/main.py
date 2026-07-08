@@ -25,7 +25,6 @@ MAX_UPLOAD_BYTES = int(os.environ.get("MAX_UPLOAD_MB", "500")) * 1024 * 1024
 
 
 def output_display_name(filename: str, mode: str, seq: int) -> str:
-    """obj_1_scraper.stl + 3 -> obj_1_scraper-03.step"""
     stem = os.path.splitext(os.path.basename(filename))[0]
     return f"{stem}-{seq:02d}.step"
 
@@ -34,12 +33,12 @@ def output_display_name(filename: str, mode: str, seq: int) -> str:
 def _startup():
     storage.ensure_dirs()
     jobs.init(os.path.join(storage.DATA_DIR, "jobs.db"))
-    jobs.fail_interrupted()  # jobs orphaned by a restart become deletable
+    jobs.fail_interrupted()
 
     def _cleanup_loop():
         while True:
-            jobs.delete_expired(storage.RETENTION_HOURS)  # rows + files together
-            storage.cleanup_expired()  # sweep any orphaned dirs too
+            jobs.delete_expired(storage.RETENTION_HOURS)
+            storage.cleanup_expired()
             time.sleep(3600)
 
     threading.Thread(target=_cleanup_loop, daemon=True).start()
@@ -124,7 +123,6 @@ def download(job_id: str, mode: str):
 
 @app.get("/api/jobs/{job_id}/preview/{mode}")
 def preview(job_id: str, mode: str):
-    """Lightweight STL of the converted output, for the in-browser 3D preview."""
     job = jobs.get_job(job_id)
     if job is None:
         raise HTTPException(404, "job not found")
@@ -136,9 +134,6 @@ def preview(job_id: str, mode: str):
 
 @app.delete("/api/jobs")
 def clear_jobs():
-    """Delete all finished (done/failed) jobs -- files and history both.
-    Jobs still queued/running are left alone so an in-progress conversion
-    is never disrupted."""
     ids = jobs.list_job_ids_by_status(("done", "failed"))
     for job_id in ids:
         storage.delete_job_files(job_id)

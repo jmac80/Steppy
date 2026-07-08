@@ -34,15 +34,12 @@ def job_output_path(job_id: str, mode: str) -> str:
 
 
 def job_preview_path(job_id: str, mode: str) -> str:
-    """Lightweight STL of the *converted output*, used only for the in-browser
-    3D preview. Lives next to the STEP so job cleanup removes both together."""
     job_dir = os.path.join(OUTPUTS_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
     return os.path.join(job_dir, f"{mode}_preview.stl")
 
 
 def delete_job_files(job_id: str) -> None:
-    """Remove a single job's upload + output folders from disk."""
     for base in (UPLOADS_DIR, OUTPUTS_DIR):
         path = os.path.join(base, job_id)
         if os.path.isdir(path):
@@ -50,7 +47,6 @@ def delete_job_files(job_id: str) -> None:
 
 
 def cleanup_expired():
-    """Delete job folders older than RETENTION_HOURS. Called on a background timer."""
     cutoff = time.time() - RETENTION_HOURS * 3600
     for base in (UPLOADS_DIR, OUTPUTS_DIR):
         if not os.path.isdir(base):

@@ -2,9 +2,6 @@ FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY index.html style.css app.js /usr/share/nginx/html/
 
-# Bundle the 3D viewer libraries into the image at BUILD time, so the running
-# app never calls out to the internet -- previews work on a fully offline LAN
-# and nothing outside your network is ever contacted. Versions are pinned.
 RUN apk add --no-cache curl \
  && mkdir -p /usr/share/nginx/html/vendor \
  && curl -fsSL -o /usr/share/nginx/html/vendor/three.min.js \

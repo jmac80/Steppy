@@ -1,6 +1,5 @@
 const API_BASE = window.API_BASE || "/api";
 
-// ---------- theme ----------
 const themeToggle = document.getElementById("themeToggle");
 const themeIcon = document.getElementById("themeIcon");
 
@@ -24,9 +23,6 @@ themeToggle.addEventListener("click", () => {
   applyTheme(current === "dark" ? "light" : "dark");
 });
 
-// ---------- reusable STL viewer ----------
-// One helper used for BOTH the input-file preview and each converted-output
-// preview, so they always behave identically.
 function viewerUnavailable(container, msg) {
   container.innerHTML =
     `<p style="padding:16px;color:var(--text-muted);font-size:13px;">${msg}</p>`;
@@ -49,8 +45,6 @@ function createSTLViewer(container, arrayBuffer, opts = {}) {
   }
 
   container.innerHTML = "";
-  // fall back to sane defaults if the box hasn't been laid out yet,
-  // so we never silently render into a 0x0 canvas
   const width = container.clientWidth || 320;
   const height = container.clientHeight || 220;
 
@@ -68,8 +62,6 @@ function createSTLViewer(container, arrayBuffer, opts = {}) {
   geometry.computeBoundingBox();
   geometry.computeVertexNormals();
 
-  // DoubleSide: converted-output shells can contain faces whose orientation
-  // flipped during sewing; single-sided rendering would show them as holes.
   const material = new THREE.MeshStandardMaterial({
     color: opts.color || 0x4f5eff,
     flatShading: true,
@@ -115,7 +107,6 @@ function createSTLViewer(container, arrayBuffer, opts = {}) {
   };
 }
 
-// ---------- upload + input preview ----------
 const dropzone = document.getElementById("dropzone");
 const fileInput = document.getElementById("fileInput");
 const previewEl = document.getElementById("preview");
@@ -128,17 +119,12 @@ function updateConvertButtonState() {
   convertBtn.disabled = !selectedFile;
 }
 
-// Drop-anywhere: the WHOLE page accepts STL drops, not just the box. The
-// window-level handlers both stop the browser hijacking the drop (Safari
-// would otherwise navigate to the file) and receive the file themselves.
-// The dropzone box stays as the visual cue + click-to-browse target, and
-// lights up whenever a drag is anywhere over the page.
 window.addEventListener("dragover", (e) => {
   e.preventDefault();
   dropzone.classList.add("dragover");
 });
 window.addEventListener("dragleave", (e) => {
-  if (!e.relatedTarget) dropzone.classList.remove("dragover"); // left the window
+  if (!e.relatedTarget) dropzone.classList.remove("dragover");
 });
 window.addEventListener("drop", (e) => {
   e.preventDefault();
@@ -162,7 +148,6 @@ function handleFile(file) {
 
   const reader = new FileReader();
   reader.onload = (event) => {
-    // wait a frame so the just-unhidden preview box has a real size
     requestAnimationFrame(() => {
       if (inputViewer) inputViewer.dispose();
       inputViewer = createSTLViewer(previewEl, event.target.result);
@@ -171,10 +156,9 @@ function handleFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-// ---------- convert + job polling ----------
 const jobList = document.getElementById("jobList");
 let firstJobRendered = false;
-const MODE = "faceted"; // Steppy's one and only mode: repair, wrap, merge coplanar faces
+const MODE = "faceted";
 
 convertBtn.addEventListener("click", () => startConversion());
 
@@ -183,8 +167,6 @@ async function startConversion() {
 
   const form = new FormData();
   form.append("file", selectedFile);
-  // units: STLs are unitless numbers; the backend always declares MM in the
-  // STEP so the model imports at identical size to what the STL numbers say
 
   convertBtn.disabled = true;
   convertBtn.textContent = "Uploading…";
@@ -204,7 +186,6 @@ async function startConversion() {
   }
 }
 
-// ---------- deleting jobs (single X + clear all), with "stop asking" ----------
 function confirmDelete(message) {
   if (localStorage.getItem("steppy-skip-delete-confirm") === "yes") return true;
   if (!confirm(message)) return false;
@@ -257,8 +238,7 @@ async function deleteJob(jobId) {
   }
 }
 
-// ---------- output previews (converted STEP, shown as meshed preview) ----------
-const jobPreviewViewers = {}; // "jobId/mode" -> viewer handle
+const jobPreviewViewers = {};
 
 function closeJobPreview(jobId, mode) {
   const card = document.getElementById(`job-${jobId}`);
@@ -277,7 +257,7 @@ function closeJobPreview(jobId, mode) {
 async function openJobPreview(jobId, mode) {
   const card = document.getElementById(`job-${jobId}`);
   if (!card) return;
-  if (card.querySelector(`.job-preview[data-mode="${mode}"]`)) return; // already open
+  if (card.querySelector(`.job-preview[data-mode="${mode}"]`)) return;
   const btn = card.querySelector(`.preview-btn[data-mode="${mode}"]`);
   if (btn) btn.textContent = "Loading…";
   try {
@@ -358,7 +338,6 @@ function renderJob(card, job, autoPreview = true) {
   statusEl.textContent = job.status;
   statusEl.className = `job-status status-${job.status}`;
 
-  // header shows the OUTPUT filename (obj_1_scraper-P03.step), not the input
   if (job.output_names && job.modes.length) {
     const nameEl = card.querySelector(".job-filename");
     if (nameEl) nameEl.textContent = job.output_names[job.modes[0]] || job.filename;
@@ -401,10 +380,6 @@ function renderJob(card, job, autoPreview = true) {
   }
   body.innerHTML = html;
 
-  // auto-open the output preview for freshly finished jobs, so you
-  // immediately see the converted STEP without an extra click. History
-  // jobs loaded on page refresh stay collapsed (opening a dozen 3D
-  // viewers at once would hit the browser's WebGL limits).
   if (autoPreview) {
     for (const mode of job.modes) {
       const r = report.modes[mode] || {};
@@ -413,14 +388,11 @@ function renderJob(card, job, autoPreview = true) {
   }
 }
 
-// on page load, restore the job history the backend still remembers
-// (files are kept for 24h -- the list should survive a browser refresh)
 (async function loadHistory() {
   try {
     const res = await fetch(`${API_BASE}/jobs`);
     if (!res.ok) return;
     const history = await res.json();
-    // list arrives newest-first; addJobCard prepends, so iterate oldest-first
     for (const job of [...history].reverse()) {
       if (document.getElementById(`job-${job.id}`)) continue;
       const name = (job.output_names && job.output_names[job.modes[0]]) || job.filename;

@@ -1,12 +1,3 @@
-"""
-The one module that talks to the OCCT (OpenCASCADE) CAD kernel, via the
-`cadquery-ocp` (OCP) bindings. Everything Steppy needs from the kernel:
-
-  - build flat triangular BREP faces from mesh triangles
-  - sew faces into a shell and close it into a solid where possible
-  - fuse coplanar faces into single big faces (FreeCAD-style upgrade)
-  - write STEP output and a lightweight STL preview of the result
-"""
 
 from __future__ import annotations
 
@@ -36,7 +27,6 @@ def pnt(p) -> gp_Pnt:
 
 
 def triangle_face(v0, v1, v2) -> TopoDS_Shape | None:
-    """Build a flat triangular BRep face from three points."""
     poly = BRepBuilderAPI_MakePolygon(pnt(v0), pnt(v1), pnt(v2), True)
     if not poly.IsDone():
         return None
@@ -47,13 +37,6 @@ def triangle_face(v0, v1, v2) -> TopoDS_Shape | None:
 
 
 def sew_faces(faces: list[TopoDS_Shape], tolerance: float = 0.05) -> tuple[TopoDS_Shape, bool, int]:
-    """
-    Sew faces into shells and close each into a solid where possible. An STL
-    can contain SEVERAL disconnected parts -- every one becomes its own body
-    in the output (v1 grabbed only the first shell and silently dropped the
-    rest). Returns (shape, all_bodies_closed, body_count); a body that can't
-    be closed is kept as an open shell rather than dropped.
-    """
     sewing = BRepBuilderAPI_Sewing(tolerance)
     for f in faces:
         if f is not None:
@@ -98,14 +81,6 @@ def count_faces(shape: TopoDS_Shape) -> int:
 
 def unify_coplanar(shape: TopoDS_Shape, linear_tol: float = 1e-4,
                     angular_tol_rad: float = 1e-2) -> TopoDS_Shape:
-    """
-    Merge adjacent faces lying on the same surface into single big faces --
-    OCCT's ShapeUpgrade_UnifySameDomain, the same operation FreeCAD applies
-    after mesh conversion. Flat areas become one clean editable face each;
-    curved areas keep their facets. The tight angular tolerance (~0.6
-    degrees) means only genuinely coplanar facets merge -- chamfers and
-    shallow curves are never smoothed over.
-    """
     unifier = ShapeUpgrade_UnifySameDomain(shape, True, True, False)
     unifier.SetLinearTolerance(linear_tol)
     unifier.SetAngularTolerance(angular_tol_rad)
@@ -114,11 +89,6 @@ def unify_coplanar(shape: TopoDS_Shape, linear_tol: float = 1e-4,
 
 
 def write_preview_stl(shape: TopoDS_Shape, out_path: str, quality: float = 0.004) -> None:
-    """
-    Triangulate the shape and write a lightweight STL used purely for the
-    browser's 3D preview of the output. `quality` is the meshing deflection
-    as a fraction of the bounding-box diagonal.
-    """
     box = Bnd_Box()
     BRepBndLib.Add_s(shape, box)
     if box.IsVoid():
@@ -131,8 +101,6 @@ def write_preview_stl(shape: TopoDS_Shape, out_path: str, quality: float = 0.004
 
     writer = StlAPI_Writer()
     try:
-        # binary STL is ~5x smaller; if this binding detail ever changes,
-        # fall through silently and write the default ASCII instead.
         writer.ASCIIMode = False
     except Exception:
         pass

@@ -1,10 +1,3 @@
-"""
-Small SQLite-backed job table + thread-pool worker. Deliberately not
-Redis/Celery for v1 -- this is meant to be easy for one person to
-self-host and reason about; a handful of concurrent conversions on a home
-server is the expected scale. Swapping in Redis/RQ later (like Stepifi
-does) is a drop-in upgrade if you outgrow this.
-"""
 
 from __future__ import annotations
 
@@ -41,12 +34,10 @@ def init(db_path: str, max_workers: int = 2):
                 error TEXT
             )
         """)
-        # migration for pre-existing databases: per-mode output sequence
-        # numbers (JSON {mode: n}) so outputs never overwrite each other
         try:
             con.execute("ALTER TABLE jobs ADD COLUMN seqs TEXT")
         except sqlite3.OperationalError:
-            pass  # column already exists
+            pass
 
 
 @contextmanager
@@ -60,9 +51,6 @@ def _connect():
 
 
 def create_job(job_id: str, filename: str, modes: list[str]) -> dict:
-    """Insert the job and assign each requested mode the next output sequence
-    number for this filename+mode combination (so repeated conversions of the
-    same file get -F01, -F02, ... instead of overwriting). Returns {mode: n}."""
     with _connect() as con:
         seqs = {}
         for mode in modes:
@@ -103,9 +91,6 @@ def list_jobs(limit: int = 50) -> list[dict]:
 
 
 def fail_interrupted() -> None:
-    """Called on startup: any job still marked queued/running was killed by a
-    restart mid-conversion. Mark it failed so it doesn't sit immortal and
-    undeletable in the list, being polled forever."""
     with _connect() as con:
         con.execute(
             "UPDATE jobs SET status='failed', error='interrupted by a server restart', "
@@ -115,8 +100,6 @@ def fail_interrupted() -> None:
 
 
 def delete_expired(retention_hours: float) -> int:
-    """Delete finished jobs older than the retention window -- files AND
-    database rows together, so no ghost entries with dead download links."""
     cutoff = time.time() - retention_hours * 3600
     with _connect() as con:
         rows = con.execute(
@@ -131,9 +114,6 @@ def delete_expired(retention_hours: float) -> int:
 
 
 def list_job_ids_by_status(statuses: tuple[str, ...]) -> list[str]:
-    """Used by clear-all: only ever targets finished jobs (done/failed), never
-    a job that's still queued or running, so an in-flight conversion can't
-    have its files pulled out from under it."""
     placeholders = ",".join("?" for _ in statuses)
     with _connect() as con:
         rows = con.execute(f"SELECT id FROM jobs WHERE status IN ({placeholders})", statuses).fetchall()
